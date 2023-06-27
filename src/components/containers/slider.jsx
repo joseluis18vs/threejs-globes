@@ -1,6 +1,6 @@
 import "@/styles/sass/_slider.scss"
 import { useEffect, useRef, useState } from "react"
-import Globe1 from "../atoms/globe1"
+import Scene from "../atoms/globe1/scene"
 
 export default function Slider() {
 
@@ -57,7 +57,7 @@ export default function Slider() {
     return(
         <ul className="slider" ref={sliderRef}>
             <li className={`slider--section ${active === 1 ? "active inEffect" : "outEffect"}`}>
-                <Globe1 />
+                <Scene />
             </li>
             <li className={`slider--section ${active === 2 ? "active inEffect": "outEffect"}`}>Section 2 - {active}</li>
             <li className={`slider--section ${active === 3 ? "active inEffect": "outEffect"}`}>Section 3 - {active}</li>
