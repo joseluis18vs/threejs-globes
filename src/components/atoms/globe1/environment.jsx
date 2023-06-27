@@ -6,7 +6,7 @@ export default function Env() {
     return(
         <>
                     {/* Controls */}
-            <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
+            <OrbitControls enableZoom={false} enablePan={true} enableRotate={true} />
 
             {/* Lights */}
             {/* <directionalLight
