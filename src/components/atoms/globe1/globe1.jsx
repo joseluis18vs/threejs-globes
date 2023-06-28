@@ -1,11 +1,11 @@
-import { useThree, useLoader } from "@react-three/fiber";
-import { useEffect } from "react";
-import ThreeGlobe from 'three-globe';
-import { TextureLoader, Vector3, MeshPhongMaterial } from "three";
+import { useFrame, useLoader } from "@react-three/fiber";
+import { useRef, useState } from "react";
+import { TextureLoader, SphereGeometry, MeshStandardMaterial, TubeGeometry, Vector3, CubicBezierCurve3, CatmullRomCurve3, CubicBezierCurve, BufferGeometry} from "three";
+import { FaMapMarkerAlt } from 'react-icons/fa'
+import { Html } from "@react-three/drei";
 
 export default function Globe1() {
 
-    const { scene } = useThree();
     const EarthDayMap = "/textures/earth/8k_earth_daymap.jpg";
     const EarthNormalMap = "/textures/earth/8k_earth_normal_map.jpg";
     const EarthSpecularMap = "/textures/earth/8k_earth_specular_map.jpg";
@@ -16,57 +16,172 @@ export default function Globe1() {
         [EarthDayMap, EarthNormalMap, EarthSpecularMap, EarthCloudsMap]
     );
 
-
-    
     const myData = [
-        { lat: 40.7128, lng: -74.0060, value: 100 },
-        { lat: 51.5074, lng: -0.1278, value: 200 },
-        { lat: 48.8566, lng: 2.3522, value: 150 },
+        { lat: 15.5499123, lng: 92.2869496},
+        { lat: 12.5499123, lng: 95.2869496},
+        { lat: 40.5499123, lng: 175.2869496},
     ];
 
-    useEffect(() => {
+    const arco = [
+        { lat: 15.5499123, lng: 92.2869496, value: 15},
+        { lat: 35.4499123, lng: 122.5, value: 15},
+        { lat: 40.5499123, lng: 175.2869496, value: 15},
+    ];
 
-        async function addGlobe() {
+    const startPoint = arco[0];
+    const midPoint = arco[1];
+    const endPoint = arco[2];
 
-            if (typeof window !== "undefined") {
+    const startPointPhi = (90 - startPoint.lat) * (Math.PI / 180);
+    const startPointTheta = (180 - startPoint.lng) * (Math.PI / 180);
 
-                const globeImageUrlPromise = new Promise((resolve) => {
-                    const image = new Image();
-                    image.src = "/earth_color.jpg";
-                    image.onload = () => resolve(image.src); // Resuelve la promesa con la URL de la imagen
-                });
+    const midPointPhi = (90 - midPoint.lat) * (Math.PI / 180);
+    const midPointTheta = (180 - midPoint.lng) * (Math.PI / 180);
 
-                const globeImageUrl = await globeImageUrlPromise;
-                // const myGlobe = new ThreeGlobe().globeImageUrl(globeImageUrl).pointsData(myData);
-                const myGlobe = new ThreeGlobe().pointsData(myData);
+    const endPointPhi = (90 - endPoint.lat) * (Math.PI / 180);
+    const endPointTheta = (180 - endPoint.lng) * (Math.PI / 180);
 
-                // Crear materiales para las texturas
-                const colorMaterial = new MeshPhongMaterial({ map: colorMap });
-                const normalMaterial = new MeshPhongMaterial({ map: normalMap });
-                const specularMaterial = new MeshPhongMaterial({ map: specularMap });
-                const cloudsMaterial = new MeshPhongMaterial({ map: cloudsMap });
+    const arcInitVector = new Vector3(
+        Math.sin(startPointPhi) * Math.cos(startPointTheta),
+        Math.cos(startPointPhi),
+        Math.sin(startPointPhi) * Math.sin(startPointTheta)
+    )
 
-                // Aplicar los materiales a la geometría del globo
-                myGlobe.material = [colorMap, normalMap, specularMap, cloudsMap];
+    const arcMedVector = new Vector3(
+        Math.sin(midPointPhi) * Math.cos(midPointTheta),
+        Math.cos(midPointPhi),
+        Math.sin(midPointPhi) * Math.sin(midPointTheta)
+    )
+    
+    const arcEndVector = new Vector3(
+        Math.sin(endPointPhi) * Math.cos(endPointTheta),
+        Math.cos(endPointPhi),
+        Math.sin(endPointPhi) * Math.sin(endPointTheta) 
+    );
+    
+    const curve = new CatmullRomCurve3([arcInitVector, arcMedVector, arcEndVector])
 
-                const newScale = new Vector3(1.8, 1.8, 1.8)
-                myGlobe.scale.set(newScale.x, newScale.y, newScale.z)
-                console.log(myGlobe);
-                scene.add(myGlobe);
-            }
+    /**
+     * 
+     */
+    const initialRadius = 0.015
+    const pointGeometry = new SphereGeometry(initialRadius);
+    const pointMaterial = new MeshStandardMaterial({ color: 0xfc1c45 });
+    const [isGrowing, setIsGrowing] = useState(true);
+    
+    const groupRef = useRef();
+    const pointGeometryRef = useRef()
+    const markerRef = useRef();
+
+    useFrame(() => {
+
+        const pointGeometry = pointGeometryRef.current;
+        const scaleFactor = 1.1;
+
+        if (isGrowing) {
+            pointGeometry.radius *= scaleFactor;
+        } else {
+            pointGeometry.radius /= scaleFactor;
         }
 
-        addGlobe();
+        if (pointGeometry.radius > initialRadius * 1.1) {
+            setIsGrowing(false);
+        } else if (pointGeometry.radius < initialRadius * 0.9) {
+            setIsGrowing(true);
+        }
 
-        return () => {
-            scene.children.forEach(child => {
-                if (child instanceof ThreeGlobe) {
-                    scene.remove(child);
-                }
-            });
-        };
+        pointGeometry.elementsNeedUpdate = true;
 
-    }, [scene]);
+        if (groupRef.current) {
+            groupRef.current.rotation.y += 0.003; // Ajusta la velocidad y dirección de la rotación aquí
+            markerRef.current.rotation.z += 0.01
+        }
+    });
 
-    return null;
+    return(
+        <group ref={groupRef}>
+            <mesh
+            >
+                <sphereGeometry  args={[1.004, 32, 32]} />
+                <meshStandardMaterial map={cloudsMap} opacity={0.4} depthWrite={true} transparent={true} />
+
+            </mesh>
+
+            <mesh
+                castShadow
+                receiveShadow
+                position={[0, 0, 0]}
+                visible={true}
+            >
+                <sphereGeometry  args={[1, 32, 32]} />
+                <meshPhongMaterial specularMap={specularMap} />
+                <meshStandardMaterial map={colorMap} normalMap={normalMap} />
+
+                <group position={[0.08, 0.23, 1.1]} rotation={[0, 0, 0]} ref={markerRef}>
+                    <Marker rotation={[0, Math.PI / 2, Math.PI / 2]}>
+                        <div style={{ position: 'absolute', fontSize: 3, letterSpacing: -0.5, left: 0, top: -4 }}>SAGENSA</div>
+                        <FaMapMarkerAlt size={10} style={{ color: 'blue' }} />
+                    </Marker>
+                </group>
+
+            </mesh>
+
+            {
+                myData.map((element, index) => {
+                    const phi = (90 - element.lat) * (Math.PI / 180);
+                    const theta = (180 - element.lng) * (Math.PI / 180);
+
+                    return (
+                        <mesh 
+                            key={index}
+                            geometry={pointGeometry}
+                            material={pointMaterial}
+                            position={[Math.sin(phi) * Math.cos(theta), Math.cos(phi), Math.sin(phi) * Math.sin(theta)]}
+                            ref={pointGeometryRef}
+                            visible={false}
+                        />
+                    );
+                })
+            }
+
+            <mesh
+                material={pointMaterial}
+                visible={false}
+            >
+                <tubeBufferGeometry args={[curve, 30, 0.01, 8, false]} />
+            </mesh>
+        </group>
+
+    );
+}
+
+function Marker({ children, ...props }) {
+    const ref = useRef()
+
+    const [isOccluded, setOccluded] = useState()
+    const [isInRange, setInRange] = useState()
+    const isVisible = isInRange && !isOccluded
+
+    const vec = new Vector3()
+        useFrame((state) => {
+            const range = state.camera.position.distanceTo(ref.current.getWorldPosition(vec)) <= 10
+            if (range !== isInRange) setInRange(range)
+        })
+
+        return (
+            <group ref={ref}>
+            <Html
+                // 3D-transform contents
+                transform
+                // Hide contents "behind" other meshes
+                occlude
+                // Tells us when contents are occluded (or not)
+                onOcclude={setOccluded}
+                // We just interpolate the visible state into css opacity and transforms
+                style={{ transition: 'all 0.2s', opacity: isVisible ? 1 : 0, transform: `scale(${isVisible ? 1 : 0.25})` }}
+                {...props}>
+                {children}
+            </Html>
+            </group>
+        )
 }

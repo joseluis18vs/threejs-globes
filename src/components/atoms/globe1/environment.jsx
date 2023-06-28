@@ -6,7 +6,7 @@ export default function Env() {
     return(
         <>
                     {/* Controls */}
-            <OrbitControls enableZoom={false} enablePan={true} enableRotate={true} />
+            <OrbitControls enableZoom={false} enablePan={false} enableRotate={true} />
 
             {/* Lights */}
             {/* <directionalLight
@@ -17,7 +17,7 @@ export default function Env() {
                 intensity={0.7}
             /> */}
 
-            <ambientLight intensity={25} />
+            <ambientLight intensity={1} />
 
             {/* 3D Models */}
             <Globe1 />
